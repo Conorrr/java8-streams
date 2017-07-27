@@ -1,5 +1,7 @@
 = Java8 Streams
 
+You can view the slides https://conorrr.github.io/java8-streams/[here]
+
 This is a presentation by Conor Restall. It is an introduction to Streams in Java8.
 
 It is built using Asciidoctor and reveal.js.

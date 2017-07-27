@@ -35,4 +35,7 @@ The first time you want to publish to gh pages you have to create the branch
 
 Once the branch is set up you can run the following to publish new changes
 
-* `./gradlew publishGhPages`
+* `./gradlew gitPublishPush`
+
+WARNING: The gradle git plugin does not automatically look for ecdsa ssh keys use `-Dorg.ajoberstar.grgit.auth.ssh.private=~/.ssh/id_ecdsa`
+

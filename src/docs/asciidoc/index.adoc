@@ -427,12 +427,12 @@ https://github.com/amaembo/streamex[StreamEx]🌟693
 
 Source:
 
-TODO
+https://github.com/Conorrr/java8-streams
 
 Slides:
 
-TODO
+https://conorrr.github.io/java8-streams/
 
 Printable Slides:
 
-TODO
+https://conorrr.github.io/java8-streams/?print-pdf

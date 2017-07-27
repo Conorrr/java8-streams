@@ -1,0 +1,239 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><title>Java 8 Streams and its friends</title><meta content="yes" name="apple-mobile-web-app-capable" /><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style" /><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui" name="viewport" /><link href="reveal.js/css/reveal.css" rel="stylesheet" /><link rel="stylesheet" href="reveal.js/css/theme/solarized.css" id="theme" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css" /><link href="reveal.js/lib/css/zenburn.css" rel="stylesheet" /><script>document.write( '<link rel="stylesheet" href="reveal.js/css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );</script></head><body><div class="reveal"><div class="slides"><section class="title"><h1>Java 8 Streams and its friends</h1><div class="preamble"><style>
+  .backgrounds{background-color: #fdf6e3; margin: 0px;}
+</style></div></section>
+<section id="what"><h2>What</h2><div class="paragraph"><p>The biggest new feature in Java 8.</p></div></section>
+<section id="why"><h2>Why</h2><div class="ulist"><ul><li><p>Declarative</p></li><li><p>Thread-safe</p></li><li><p>Easier to reason about</p></li><li><p>Make parallelisation easier</p></li><li><p>Encourages a different approach to solving problems</p></li><li><p>Often shorter</p></li></ul></div></section>
+<section id="preface"><h2>Preface</h2><div class="paragraph"><p>The things I explain in this talk aren&#8217;t always the nicest way to do things, sometimes it&#8217;s still better to write imperatively.</p></div></section>
+<section id="basics"><h2>Basics</h2></section>
+<section><section id="lambda"><h2>Lambda</h2><div class="ulist"><ul><li><p>A block of code</p></li><li><p>Java 8 version of anonymous inner classes</p></li></ul></div><div class="listingblock"><div class="title">Java 7</div><div class="content"><pre class="highlight"><code class="java language-java">List&lt;Person&gt; people = getPeople();
+Collections.sort(people, new Comparator&lt;Person&gt;(){
+  @Override
+  public int compare(Person p1, Person p2){
+    return p1.getName().compareTo(p2.getName());
+  }
+});</code></pre></div></div></section><section><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">List&lt;Person&gt; people = getPeople();
+Collections.sort(people, (Person p1, Person p2) {
+  return p1.getName().compareTo(p2.getName());
+});</code></pre></div></div></section><section id="java-8"><h2>Java 8</h2><div class="listingblock"><div class="title">Java 8</div><div class="content"><pre class="highlight"><code class="java language-java">List&lt;Person&gt; people = getPeople();
+people.sort((p1,p2)-&gt;p1.getName().compare(p2.getName()));</code></pre></div></div>
+<div class="ulist"><ul><li><p>Expression Lambdas
+<code>str &#8594; str.toUpperCase()</code></p></li><li><p>Block Lambdas
+<code>str &#8594; {return str.toUpperCase();}</code></p></li></ul></div>
+<aside class="notes"><div class="paragraph"><p>Try to avoid block lambdas they are verbose and usually unnecessary.</p></div></aside></section><section id="functional-interfaces"><h2>Functional Interfaces</h2><div class="paragraph"><p>Any interface with implmentable 1 method.
+They usually have <code>@FunctionalInterface</code> annotation.</p></div>
+<div class="paragraph"><p>Some of these actually existed in before Java 8</p></div>
+<div class="ulist"><ul><li><p>Runnable</p></li><li><p>Comparable</p></li><li><p>Callable</p></li></ul></div>
+<div class="paragraph"><p>New ones added in Java 8</p></div>
+<div class="ulist"><ul><li><p>Function&lt;T,R&gt;</p></li><li><p>Predicate&lt;T&gt;</p></li><li><p>Supplier&lt;T&gt;</p></li><li><p>Consumer&lt;T&gt;</p></li><li><p>MORE&#8230;&#8203;</p></li></ul></div>
+<aside class="notes"><div class="paragraph"><p>Compiler will fail if there are is more than 1 abstract implementation</p></div></aside></section><section id="method-references"><h2>Method References</h2><div class="paragraph"><p>New notation in Java 8.</p></div>
+<div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">class Person {
+    private String name;
+    private int age;
+
+    public int getAge() {return this.age;}
+    public String getName() {return this.name;}
+}
+
+Person[] people = ...;
+Arrays.sort(people, Comparator.comparing(Person::getName));
+// vs
+Arrays.sort(people, Comparator.comparing(p -&gt; p.getName()));</code></pre></div></div></section><section id="method-references-2"><h2>Method References</h2><h3>Kinds of method references</h3><div class="ulist"><ul><li class="fragment"><p>A static method  - <code>ClassName::methName</code></p></li><li class="fragment"><p>An instance method of a particular object - <code>instanceRef::methName</code></p></li><li class="fragment"><p>A super method of a particular object - <code>super::methName</code></p></li><li class="fragment"><p>An instance method of an arbitrary object of a particular type  - <code>ClassName::methName</code></p></li><li class="fragment"><p>A class constructor reference - <code>ClassName::new</code></p></li><li class="fragment"><p>An array constructor reference - <code>TypeName[]::new</code></p></li></ul></div></section><section id="default-methods"><h2>Default Methods</h2><div class="paragraph"><p>Java 8 added support for "default methods", these are public abstract methods that exist on interfaces.</p></div>
+<hr />
+<div class="paragraph"><p>Java 9 adds private methods to interfaces</p></div></section><section id="combining-lambdas"><h2>Combining lambdas</h2><div class="paragraph"><p>There are a number of ways to combine lambdas</p></div></section><section id="predicates"><h2>Predicates</h2><div class="listingblock"><div class="title">example of <code>negate</code> and <code>or</code></div><div class="content"><pre class="highlight"><code class="java language-java">Predicate&lt;ResponseMsgType&gt; isError =
+                        type -&gt; type.getStatus().equals(STATUS_ERROR);
+Predicate&lt;ResponseMsgType&gt; faultFree =
+                        type -&gt; type.getFaults().getFault().isEmpty();
+
+boolean containsError = Stream.of(responseMessages)
+          .anyMatch(isError.or(faultFree.negate()));</code></pre></div></div></section><section id="other-common-methods"><h2>Other common methods</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">Function&lt;Integer, Integer&gt; times2 = e -&gt; e * 2;
+
+Function&lt;Integer, Integer&gt; squared = e -&gt; e * e;</code></pre></div></div>
+<div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">times2.compose(squared).apply(4);
+// 32
+
+times2.andThen(squared).apply(4);
+// 64</code></pre></div></div>
+<div class="paragraph"><p>No Real Currying 😭 (see VAVR and JOOλ)</p></div></section><section id="checked-exceptions"><h2>Checked Exceptions</h2><div class="ulist"><ul><li><p>Beware of methods that throw checked exceptions in streams</p></li><li><p>You will have to write your own functional interface which will not play nice with others or wrap your lambdas</p></li><li><p>Some utilities exist to capture checked exceptions and convert them to unchecked exceptions</p></li><li><p>VAVR has a nicer solution <a href="http://www.vavr.io/vavr-docs/#_try">(TRY monad)</a></p></li><li><p><a href="https://stackoverflow.com/questions/27644361/how-can-i-throw-checked-exceptions-from-inside-java-8-streams">Interesting thread on stackoverflow</a></p></li></ul></div></section><section id="we-can-use-the-utility-in-other-ways"><h2>We can use the utility in other ways</h2><div class="paragraph"><p><a href="https://github.com/OpenGamma/Strata/blob/master/modules/collect/src/main/java/com/opengamma/strata/collect/Unchecked.java">OpenGamma-Strata-Collect</a></p></div>
+<div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">URL url = Unchecked.wrap(() -&gt; new URL("http://google.com/"));</code></pre></div></div>
+<div class="paragraph"><p>We no longer have to handle the exception. They are automatically wrapped up and hidden.
+Tidy utility for wrapping checked exceptions in an runtime exception.</p></div></section><section id="help-with-testing"><h2>Help with testing</h2><div class="listingblock"><div class="title">AssertJ has lots of nice things e.g.</div><div class="content"><pre class="highlight"><code class="java language-java">assertThatThrownBy(() -&gt; someObj.someMethod())
+         .throws(SomeException.class)
+          .hasMessage("dang");</code></pre></div></div></section></section>
+<section><section id="optional"><h2>Optional</h2><div class="ulist"><ul><li><p>A object that has 2 states</p><div class="ulist"><ul><li><p>some value</p></li><li><p>no value</p></li></ul></div></li><li><p>Designed to help deal the the <a href="https://www.infoq.com/presentations/Null-References-The-Billion-Dollar-Mistake-Tony-Hoare">"Billion Dollar Mistake"</a> - null</p></li><li><p>Enables more declarative way to deal with nulls</p></li><li><p>Not serializable (<a href="https://stackoverflow.com/questions/24547673/why-java-util-optional-is-not-serializable-how-to-serialize-the-object-with-suc">stackoverflow thread</a>)</p></li></ul></div></section><section id="how-optional-should-be-used"><h2>How Optional should be used</h2><div class="ulist"><ul><li><p>Methods should always return Optional&lt;T&gt; if the return type can be null</p></li><li><p>Methods should very rarely/never accept Optional as a parameter</p></li><li><p>Don&#8217;t ever let Optional be null</p><div class="ulist"><ul><li><p>Most good static code analysis should pick this up</p></li></ul></div></li></ul></div></section><section id="key-to-making-good-use-of-optional-is-the-orelse-methods"><h2>Key to making good use of Optional is the orElse&#8230;&#8203; methods</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">public Optional&lt;Customer&gt; getCustomer(String id)...
+
+Customer customer = getCustomer(id).orElse(new Customer());
+
+// or
+
+Customer customer = getCustomer(id).orElseThrow(
+                                          CustomerNotFoundException::new);</code></pre></div></div></section><section id="avoid-ispresent"><h2>Avoid isPresent</h2><div class="paragraph"><p>This is not how Optional should be used.</p></div>
+<div class="paragraph"><p>You might as well use nulls.</p></div>
+<div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">Optional&lt;Customer&gt; customer = getCustomer(id);
+if (customer.isPresent()) {
+  ...</code></pre></div></div>
+<div class="paragraph"><p>*isPresent is improved in Java9 😊</p></div></section></section>
+<section><section id="streams"><h2>Streams</h2><div class="ulist"><ul><li><p>Most loops are the same</p></li><li><p>Repetitive design patterns</p></li><li><p>Abstract out the repetitive parts and use Functions to describe the bits we care about</p></li><li><p>Can be a bit hard to pick up if you are use to Imperative style of programming</p></li></ul></div></section><section id="lets-see-one"><h2>Lets see one</h2><div class="listingblock"><div class="title">Imperitive style</div><div class="content"><pre class="highlight"><code class="java language-java">List&lt;Customer&gt; customers = getCustomers();
+List&lt;String&gt; emailAddresses = new ArrayList&lt;&gt;();
+
+for (Customer customer : customers) {
+  if (StringUtils.isNotBlank(customer.getEmail())) {
+    emailAddresses.add(customer.getEmail());
+  }
+}</code></pre></div></div>
+<div class="listingblock"><div class="title">Declarative style</div><div class="content"><pre class="highlight"><code class="java language-java">public String getEmail() {...
+
+List&lt;Customer&gt; customers = getCustomers();
+List&lt;String&gt; emailAddresses = customers.stream()
+   .map(Customer::getEmail)
+   .filter(StringUtils::isNotBlank)
+   .collect(Collectors.toList());</code></pre></div></div></section><section id="stream-and-optionals"><h2>Stream and Optionals</h2><div class="paragraph"><p>Surprisingly there is a bit of a hole in Java 8, It&#8217;s solved in Java 9
+<a href="https://bugs.openjdk.java.net/browse/JDK-8050820" class="bare">https://bugs.openjdk.java.net/browse/JDK-8050820</a></p></div>
+<div class="listingblock"><div class="title">Declarative style with Optional</div><div class="content"><pre class="highlight"><code class="java language-java">static &lt;T&gt; Stream&lt;T&gt; streamopt(Optional&lt;T&gt; opt) {
+  return opt.map(Stream::of).orElse(Stream::empty);
+}
+
+public Optional&lt;String&gt; getEmail() {...
+
+List&lt;Customer&gt; customers = getCustomers();
+List&lt;String&gt; emailAddresses = customers.stream()
+   .map(Customer::getEmail)
+   .flatMap(scratch_1::streamopt)
+   .filter(StringUtils::isNotBlank)
+   .collect(Collectors.toList());</code></pre></div></div></section><section id="collectors"><h2>Collectors</h2><div class="ulist"><ul><li><p>Collectors class holds lots of power</p></li><li><p>It has loads of useful ways to turn your stream into something else.</p></li></ul></div></section><section id="imperative-vs-declarative"><h2>Imperative vs Declarative</h2><div class="listingblock"><div class="title">Imperative way to build a String</div><div class="content"><pre class="highlight"><code class="java language-java">List&lt;Customer&gt; customers = getCustomers();
+
+StringBuilder sb = new StringBuilder();
+
+for (int i = 0; i &lt; customers.size() -1; i++ ) {
+  sb.append(customers.get(i).getName());
+  sb.append(", ");
+}
+
+sb.append(customers.get(customers.size()-1).getName());
+
+sb.toString();</code></pre></div></div>
+<div class="listingblock"><div class="title">Declarative example using Collectors.joining</div><div class="content"><pre class="highlight"><code class="java language-java">List&lt;Customer&gt; customers = getCustomers();
+
+String names = customers.stream()
+                        .map(Customer::getName)
+                        .collect(collectors.joining(", "));</code></pre></div></div></section><section id="streams-are-lazy"><h2>Streams are Lazy</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">List&lt;Integer&gt; ints = IntStream.rangeClosed(1, 100)
+        .map(i -&gt; {
+            System.out.println(i);
+            return i * 2;
+        })
+        .limit(5)
+        .boxed()
+        .collect(Collectors.toList());
+
+System.out.println(ints);
+
+// 1
+// 2
+// 3
+// 4
+// 5
+// [2, 4, 6, 8, 10]</code></pre></div></div></section></section>
+<section><section id="parallelism"><h2>Parallelism</h2><div class="paragraph"><p>A big part the focus for Java 8 Streams was to make sure that everything works in parallel.</p></div><div class="listingblock"><div class="title">Simple Example</div><div class="content"><pre class="highlight"><code class="java language-java">// list contains 10 elements
+
+list.stream()
+    .forEach(wrap(() -&gt; Thread.sleep(3000)));
+// Took 30032ms
+
+list.parallelStream()
+    .forEach(wrap(() -&gt; Thread.sleep(3000)));
+// Took 6014ms</code></pre></div></div><div class="paragraph"><p>The number of threads in the Parallel thread pool can be set via</p></div><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">--Djava.util.concurrent.ForkJoinPool.common.parallelism=10</code></pre></div></div></section><section id="custom-thread-pools"><h2>Custom Thread Pools</h2><div class="paragraph"><p>The example in the previous slide used the default ForkJoinPool which is shared by across the JVM and by default only has size (numbers of cores-1).</p></div>
+<div class="paragraph"><p>We can also create our own thread pools and use them. This is a bit of a trick and wasn&#8217;t explicitly designed to work like this.</p></div>
+<div class="listingblock"><div class="title">ForkJoinPool example</div><div class="content"><pre class="highlight"><code class="java language-java">ForkJoinPool forkJoinPool = new ForkJoinPool(10);
+
+forkJoinPool.submit(() -&gt;
+        list.parallelStream()
+            .forEach(wrap(() -&gt; Thread.sleep(3000)))
+).get();
+// Took 3006ms</code></pre></div></div></section></section>
+<section id="functional"><h2>Functional++</h2><div class="paragraph"><p>Compared to other languages like Scala and Clojure the higher-order functions and Monads offered by Java 8 are pretty limited. Luckily there are an abundance of libraries that try to fill the gap.</p></div>
+<div class="paragraph"><p><a href="https://www.vavr.io/">vavr (Formerly JΛVΛSLANG)</a>🌟1894</p></div>
+<div class="paragraph"><p><a href="https://github.com/jOOQ/jOOL">JOOλ(JOOL)</a>🌟1045</p></div>
+<div class="paragraph"><p><a href="https://github.com/amaembo/streamex">StreamEx</a>🌟693</p></div></section>
+<section id="learning-resources"><h2>Learning resources</h2><div class="ulist"><ul><li><p><a href="https://www.youtube.com/watch?v=dlzMV83RTtw">Refactoring to Java 8 by Trisha Gee</a></p></li><li><p><a href="https://www.youtube.com/watch?v=1OpAgZvYXLQ">Get a Taste of Lambdas and Get Addicted to Streams by Venkat Subramaniam</a> Warning it&#8217;s 2 3/4 hours</p></li><li><p><a href="https://www.youtube.com/watch?v=e4MT_OguDKg">Design Patterns in the Light of Lambda Expressions by Subramaniam</a></p></li><li><p><a href="https://www.youtube.com/watch?v=7BC5k9lEOWE">Thinking in Parallel</a></p></li><li><p><a href="https://medium.com/@johnmcclean">John McClean&#8217;s Blog</a> - great blog, most of the articles focus on Reactive Streams though</p></li></ul></div></section>
+<section id="my-slides-are-available-on-nowhere-yet"><h2>My slides are available on Nowhere yet</h2><div class="paragraph"><p>Source:</p></div>
+<div class="paragraph"><p>TODO</p></div>
+<div class="paragraph"><p>Slides:</p></div>
+<div class="paragraph"><p>TODO</p></div>
+<div class="paragraph"><p>Printable Slides:</p></div>
+<div class="paragraph"><p>TODO</p></div></section></div></div><script src="reveal.js/lib/js/head.min.js"></script><script src="reveal.js/js/reveal.js"></script><script>// See https://github.com/hakimel/reveal.js#configuration for a full list of configuration options
+Reveal.initialize({
+  // Display controls in the bottom right corner
+  controls: true,
+  // Display a presentation progress bar
+  progress: true,
+  // Display the page number of the current slide
+  slideNumber: true,
+  // Push each slide change to the browser history
+  history: true,
+  // Enable keyboard shortcuts for navigation
+  keyboard: true,
+  // Enable the slide overview mode
+  overview: true,
+  // Vertical centering of slides
+  center: true,
+  // Enables touch navigation on devices with touch input
+  touch: true,
+  // Loop the presentation
+  loop: false,
+  // Change the presentation direction to be RTL
+  rtl: false,
+  // Turns fragments on and off globally
+  fragments: true,
+  // Flags if the presentation is running in an embedded mode,
+  // i.e. contained within a limited portion of the screen
+  embedded: false,
+  // Number of milliseconds between automatically proceeding to the
+  // next slide, disabled when set to 0, this value can be overwritten
+  // by using a data-autoslide attribute on your slides
+  autoSlide: 0,
+  // Stop auto-sliding after user input
+  autoSlideStoppable: true,
+  // Enable slide navigation via mouse wheel
+  mouseWheel: false,
+  // Hides the address bar on mobile devices
+  hideAddressBar: true,
+  // Opens links in an iframe preview overlay
+  previewLinks: false,
+  // Theme (e.g., beige, black, league, night, serif, simple, sky, solarized, white)
+  // NOTE setting the theme in the config no longer works in reveal.js 3.x
+  //theme: Reveal.getQueryHash().theme || 'solarized',
+  // Transition style (e.g., none, fade, slide, convex, concave, zoom)
+  transition: Reveal.getQueryHash().transition || 'default',
+  // Transition speed (e.g., default, fast, slow)
+  transitionSpeed: 'default',
+  // Transition style for full page slide backgrounds (e.g., none, fade, slide, convex, concave, zoom)
+  backgroundTransition: 'fade',
+  // Number of slides away from the current that are visible
+  viewDistance: 3,
+  // Parallax background image (e.g., "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'")
+  parallaxBackgroundImage: '',
+  // Parallax background size in CSS syntax (e.g., "2100px 900px")
+  parallaxBackgroundSize: '',
+
+  // The "normal" size of the presentation, aspect ratio will be preserved
+  // when the presentation is scaled to fit different resolutions. Can be
+  // specified using percentage units.
+  width: 960,
+  height: 700,
+
+  // Factor of the display size that should remain empty around the content
+  margin: 0.1,
+
+  // Bounds for smallest/largest possible scale to apply to content
+  minScale: 0.2,
+  maxScale: 1.5,
+
+  // Optional libraries used to extend on reveal.js
+  dependencies: [
+      { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+      { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+      { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+      { src: 'reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+  ]
+});</script></body></html>

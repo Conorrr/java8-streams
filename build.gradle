@@ -1,0 +1,95 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath('org.asciidoctor:asciidoctor-gradle-plugin:1.5.3') {
+            exclude group: 'org.asciidoctor', module: 'asciidoctorj'
+        }
+        classpath 'org.asciidoctor:asciidoctorj:1.5.4.1'
+        classpath 'com.github.jruby-gradle:jruby-gradle-plugin:0.4.0'
+//        classpath 'org.ysb33r.gradle:vfs-gradle-plugin:1.0'
+        classpath 'commons-httpclient:commons-httpclient:3.1'
+        classpath 'org.ajoberstar:gradle-git:1.1.0'
+    }
+
+}
+
+plugins {
+    id "de.undercouch.download" version "3.1.2"
+}
+
+
+apply plugin: 'com.github.jruby-gradle.base'
+//apply plugin: 'org.ysb33r.vfs'
+
+apply plugin: 'java'
+apply plugin: 'org.asciidoctor.convert'
+
+dependencies {
+    gems 'rubygems:slim:2.1.0'
+    gems 'rubygems:thread_safe:0.3.4'
+}
+
+ext {
+    // TODO upgrade to v3
+    revealjsVersion = '2.6.2'
+    asciidoctorBackendVersion = '1.0.1'
+    downloadDir = new File(buildDir, 'download')
+    templateDir = new File(downloadDir, 'templates')
+    revealJsDir = new File(downloadDir, 'reveal.js')
+}
+
+// TODO: Maybe
+// apply from: 'gradle/pdf.gradle'
+
+// download Reveal JS
+task downloadFiles {
+    doLast {
+        mkdir downloadDir
+        mkdir templateDir
+
+        ["https://github.com/asciidoctor/asciidoctor-reveal.js/archive/v${asciidoctorBackendVersion}.zip": templateDir,
+         "https://github.com/hakimel/reveal.js/archive/${revealjsVersion}.zip"                          : downloadDir].each { url, to ->
+            def tempDownloadFile = new File(buildDir, "temporaryFile.zip")
+            download {
+                src url
+                dest tempDownloadFile
+                overwrite true
+            }
+
+            copy {
+                from zipTree(tempDownloadFile)
+                into to
+            }
+        }
+
+        file("$downloadDir/reveal.js-${revealjsVersion}").renameTo(revealJsDir)
+    }
+}
+downloadFiles {
+    description "Download extra reveal.js resources"
+    inputs.property 'asciidoctorBackendVersion', asciidoctorBackendVersion
+    inputs.property 'revealjsVersion', revealjsVersion
+    outputs.dir templateDir
+    outputs.dir revealJsDir
+}
+
+task copyTheme(type: Copy) {
+
+    dependsOn downloadFiles
+//    from fileTree("$revealJsDir/reveal.js-${revealjsVersion}")
+//    into revealJsDir
+
+    from fileTree('src/docs/theme')
+    into file("$revealJsDir/css/theme")
+}
+
+apply from: 'gradle/asciidoctor.gradle'
+apply from: 'gradle/github.gradle'
+
+allprojects {
+    apply plugin: 'idea'
+}

@@ -1,0 +1,38 @@
+= Java8 Streams
+
+This is a presentation by Conor Restall. It is an introduction to Streams in Java8.
+
+It is built using Asciidoctor and reveal.js.
+
+== Structure
+
+Gradle does all the heavy lifting. It downloads Asciidoctor and reveal.js
+
+* Main template for the presentation is in `src/main/docs/asciidoc/index.adoc`
+* Gradle config for asciidoctor lives in `gradle/asciidoctor.gradle`
+* Gradle config for github lives in `gradle/github.gradle`
+
+== Building
+
+* Run `./gradlew asciidoctor`
+* This puts the presentation together and puts it in `build/asciidoc/reveal.js`
+
+If you want the presentation to automatically update as you are changing the asciidoctor file you can include the `-t` gradle flag.
+
+* Run `./gradlew asciidoctor -t`
+
+== Publishing to GitHub
+
+The first time you want to publish to gh pages you have to create the branch
+
+* Firstly we need to create the ghpages branch and set up tracking `git checkout --orphan gh-pages`
+* Delete all files `rm -rf * .gitignore .gradle`
+* `touch init`
+* `git add init`
+* `git commit -m 'initial gh-pages'`
+* `git push -u origin gh-pages`
+* `git checkout master`
+
+Once the branch is set up you can run the following to publish new changes
+
+* `./gradlew publishGhPages`

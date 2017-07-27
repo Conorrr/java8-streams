@@ -1,0 +1,438 @@
+= Java 8 Streams and its friends
+
+++++
+<style>
+  .backgrounds{background-color: #fdf6e3; margin: 0px;}
+</style>
+++++
+
+== What
+The biggest new feature in Java 8.
+
+
+== Why
+* Declarative
+* Thread-safe
+* Easier to reason about
+* Make parallelisation easier
+* Encourages a different approach to solving problems
+* Often shorter
+
+== Preface
+
+The things I explain in this talk aren't always the nicest way to do things, sometimes it's still better to write imperatively.
+
+== Basics
+
+== Lambda
+* A block of code
+* Java 8 version of anonymous inner classes
+
+[source, java]
+.Java 7
+----
+List<Person> people = getPeople();
+Collections.sort(people, new Comparator<Person>(){
+  @Override
+  public int compare(Person p1, Person p2){
+    return p1.getName().compareTo(p2.getName());
+  }
+});
+----
+
+[notitle]
+=== !
+[source,java]
+----
+List<Person> people = getPeople();
+Collections.sort(people, (Person p1, Person p2) {
+  return p1.getName().compareTo(p2.getName());
+});
+----
+
+=== Java 8
+
+[source,java]
+.Java 8
+----
+List<Person> people = getPeople();
+people.sort((p1,p2)->p1.getName().compare(p2.getName()));
+----
+
+* Expression Lambdas
+  `str -> str.toUpperCase()`
+
+* Block Lambdas
+  `str -> {return str.toUpperCase();}`
+
+[NOTE.speaker]
+--
+Try to avoid block lambdas they are verbose and usually unnecessary.
+--
+
+
+=== Functional Interfaces
+Any interface with implmentable 1 method.
+They usually have `@FunctionalInterface` annotation.
+
+Some of these actually existed in before Java 8
+
+* Runnable
+* Comparable
+* Callable
+
+New ones added in Java 8
+
+* Function<T,R>
+* Predicate<T>
+* Supplier<T>
+* Consumer<T>
+* MORE...
+
+
+[NOTE.speaker]
+--
+Compiler will fail if there are is more than 1 abstract implementation
+--
+
+=== Method References
+
+New notation in Java 8.
+
+[source,java]
+----
+class Person {
+    private String name;
+    private int age;
+
+    public int getAge() {return this.age;}
+    public String getName() {return this.name;}
+}
+
+Person[] people = ...;
+Arrays.sort(people, Comparator.comparing(Person::getName));
+// vs
+Arrays.sort(people, Comparator.comparing(p -> p.getName()));
+----
+
+=== Method References
+==== Kinds of method references
+
+[%step]
+* A static method  - `ClassName::methName`
+* An instance method of a particular object - `instanceRef::methName`
+* A super method of a particular object - `super::methName`
+* An instance method of an arbitrary object of a particular type  - `ClassName::methName`
+* A class constructor reference - `ClassName::new`
+* An array constructor reference - `TypeName[]::new`
+
+=== Default Methods
+
+Java 8 added support for "default methods", these are public abstract methods that exist on interfaces.
+
+'''
+
+Java 9 adds private methods to interfaces
+
+=== Combining lambdas
+
+There are a number of ways to combine lambdas
+
+=== Predicates
+
+[source, java]
+.example of `negate` and `or`
+----
+Predicate<ResponseMsgType> isError =
+                        type -> type.getStatus().equals(STATUS_ERROR);
+Predicate<ResponseMsgType> faultFree =
+                        type -> type.getFaults().getFault().isEmpty();
+
+boolean containsError = Stream.of(responseMessages)
+          .anyMatch(isError.or(faultFree.negate()));
+----
+
+=== Other common methods
+
+[source,java]
+----
+Function<Integer, Integer> times2 = e -> e * 2;
+
+Function<Integer, Integer> squared = e -> e * e;
+----
+
+[source,java]
+----
+times2.compose(squared).apply(4);
+// 32
+
+times2.andThen(squared).apply(4);
+// 64
+----
+
+No Real Currying 😭 (see VAVR and JOOλ)
+
+=== Checked Exceptions
+* Beware of methods that throw checked exceptions in streams
+* You will have to write your own functional interface which will not play nice with others or wrap your lambdas
+* Some utilities exist to capture checked exceptions and convert them to unchecked exceptions
+* VAVR has a nicer solution http://www.vavr.io/vavr-docs/#_try[(TRY monad)]
+* https://stackoverflow.com/questions/27644361/how-can-i-throw-checked-exceptions-from-inside-java-8-streams[Interesting thread on stackoverflow]
+
+=== We can use the utility in other ways
+
+https://github.com/OpenGamma/Strata/blob/master/modules/collect/src/main/java/com/opengamma/strata/collect/Unchecked.java[OpenGamma-Strata-Collect]
+
+[source,java]
+----
+URL url = Unchecked.wrap(() -> new URL("http://google.com/"));
+----
+
+We no longer have to handle the exception. They are automatically wrapped up and hidden.
+Tidy utility for wrapping checked exceptions in an runtime exception.
+
+=== Help with testing
+
+[source,java]
+.AssertJ has lots of nice things e.g.
+----
+assertThatThrownBy(() -> someObj.someMethod())
+         .throws(SomeException.class)
+          .hasMessage("dang");
+----
+
+== Optional
+* A object that has 2 states
+  ** some value
+  ** no value
+* Designed to help deal the the https://www.infoq.com/presentations/Null-References-The-Billion-Dollar-Mistake-Tony-Hoare["Billion Dollar Mistake"] - null
+* Enables more declarative way to deal with nulls
+* Not serializable (https://stackoverflow.com/questions/24547673/why-java-util-optional-is-not-serializable-how-to-serialize-the-object-with-suc[stackoverflow thread])
+
+=== How Optional should be used
+
+* Methods should always return Optional<T> if the return type can be null
+* Methods should very rarely/never accept Optional as a parameter
+* Don't ever let Optional be null
+  ** Most good static code analysis should pick this up
+
+=== Key to making good use of Optional is the orElse... methods
+
+[source,java]
+----
+public Optional<Customer> getCustomer(String id)...
+
+Customer customer = getCustomer(id).orElse(new Customer());
+
+// or
+
+Customer customer = getCustomer(id).orElseThrow(
+                                          CustomerNotFoundException::new);
+----
+
+=== Avoid isPresent
+
+This is not how Optional should be used.
+
+You might as well use nulls.
+
+[source,java]
+----
+Optional<Customer> customer = getCustomer(id);
+if (customer.isPresent()) {
+  ...
+
+----
+
+*isPresent is improved in Java9 😊
+
+== Streams
+* Most loops are the same
+* Repetitive design patterns
+* Abstract out the repetitive parts and use Functions to describe the bits we care about
+* Can be a bit hard to pick up if you are use to Imperative style of programming
+
+=== Lets see one
+
+[source,java]
+.Imperitive style
+----
+List<Customer> customers = getCustomers();
+List<String> emailAddresses = new ArrayList<>();
+
+for (Customer customer : customers) {
+  if (StringUtils.isNotBlank(customer.getEmail())) {
+    emailAddresses.add(customer.getEmail());
+  }
+}
+----
+
+[source, java]
+.Declarative style
+----
+public String getEmail() {...
+
+List<Customer> customers = getCustomers();
+List<String> emailAddresses = customers.stream()
+   .map(Customer::getEmail)
+   .filter(StringUtils::isNotBlank)
+   .collect(Collectors.toList());
+----
+
+=== Stream and Optionals
+
+Surprisingly there is a bit of a hole in Java 8, It's solved in Java 9
+https://bugs.openjdk.java.net/browse/JDK-8050820
+
+[source, java]
+.Declarative style with Optional
+----
+static <T> Stream<T> streamopt(Optional<T> opt) {
+  return opt.map(Stream::of).orElse(Stream::empty);
+}
+
+public Optional<String> getEmail() {...
+
+List<Customer> customers = getCustomers();
+List<String> emailAddresses = customers.stream()
+   .map(Customer::getEmail)
+   .flatMap(scratch_1::streamopt)
+   .filter(StringUtils::isNotBlank)
+   .collect(Collectors.toList());
+----
+
+
+=== Collectors
+
+* Collectors class holds lots of power
+* It has loads of useful ways to turn your stream into something else.
+
+=== Imperative vs Declarative
+
+[source, java]
+.Imperative way to build a String
+----
+List<Customer> customers = getCustomers();
+
+StringBuilder sb = new StringBuilder();
+
+for (int i = 0; i < customers.size() -1; i++ ) {
+  sb.append(customers.get(i).getName());
+  sb.append(", ");
+}
+
+sb.append(customers.get(customers.size()-1).getName());
+
+sb.toString();
+----
+
+[source, java]
+.Declarative example using Collectors.joining
+----
+List<Customer> customers = getCustomers();
+
+String names = customers.stream()
+                        .map(Customer::getName)
+                        .collect(collectors.joining(", "));
+----
+
+=== Streams are Lazy
+
+[source, java]
+----
+List<Integer> ints = IntStream.rangeClosed(1, 100)
+        .map(i -> {
+            System.out.println(i);
+            return i * 2;
+        })
+        .limit(5)
+        .boxed()
+        .collect(Collectors.toList());
+
+System.out.println(ints);
+
+// 1
+// 2
+// 3
+// 4
+// 5
+// [2, 4, 6, 8, 10]
+----
+
+== Parallelism
+
+A big part the focus for Java 8 Streams was to make sure that everything works in parallel.
+
+[source,java]
+.Simple Example
+----
+// list contains 10 elements
+
+list.stream()
+    .forEach(wrap(() -> Thread.sleep(3000)));
+// Took 30032ms
+
+list.parallelStream()
+    .forEach(wrap(() -> Thread.sleep(3000)));
+// Took 6014ms
+----
+
+The number of threads in the Parallel thread pool can be set via
+
+[source, java]
+----
+--Djava.util.concurrent.ForkJoinPool.common.parallelism=10
+----
+
+=== Custom Thread Pools
+
+The example in the previous slide used the default ForkJoinPool which is shared by across the JVM and by default only has size (numbers of cores-1).
+
+We can also create our own thread pools and use them. This is a bit of a trick and wasn't explicitly designed to work like this.
+
+[source, java]
+.ForkJoinPool example
+----
+ForkJoinPool forkJoinPool = new ForkJoinPool(10);
+
+forkJoinPool.submit(() ->
+        list.parallelStream()
+            .forEach(wrap(() -> Thread.sleep(3000)))
+).get();
+// Took 3006ms
+----
+
+
+[notitle]
+== Functional++
+Compared to other languages like Scala and Clojure the higher-order functions and Monads offered by Java 8 are pretty limited. Luckily there are an abundance of libraries that try to fill the gap.
+
+https://www.vavr.io/[vavr (Formerly JΛVΛSLANG)]🌟1894
+
+https://github.com/jOOQ/jOOL[JOOλ(JOOL)]🌟1045
+
+https://github.com/amaembo/streamex[StreamEx]🌟693
+
+== Learning resources
+
+* https://www.youtube.com/watch?v=dlzMV83RTtw[Refactoring to Java 8 by Trisha Gee]
+* https://www.youtube.com/watch?v=1OpAgZvYXLQ[Get a Taste of Lambdas and Get Addicted to Streams by Venkat Subramaniam] Warning it's 2 3/4 hours
+* https://www.youtube.com/watch?v=e4MT_OguDKg[Design Patterns in the Light of Lambda Expressions by Subramaniam]
+
+* https://www.youtube.com/watch?v=7BC5k9lEOWE[Thinking in Parallel]
+
+* https://medium.com/@johnmcclean[John McClean's Blog] - great blog, most of the articles focus on Reactive Streams though
+
+== My slides are available on Nowhere yet
+
+Source:
+
+TODO
+
+Slides:
+
+TODO
+
+Printable Slides:
+
+TODO

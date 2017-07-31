@@ -72,10 +72,10 @@ Try to avoid block lambdas they are verbose and usually unnecessary.
 
 
 === Functional Interfaces
-Any interface with implmentable 1 method.
+Any interface with a single implementable method
 They usually have `@FunctionalInterface` annotation.
 
-Some of these actually existed in before Java 8
+Some of these actually existed before Java 8
 
 * Runnable
 * Comparable
@@ -333,7 +333,7 @@ List<Customer> customers = getCustomers();
 
 String names = customers.stream()
                         .map(Customer::getName)
-                        .collect(collectors.joining(", "));
+                        .collect(Collectors.joining(", "));
 ----
 
 === Streams are Lazy
